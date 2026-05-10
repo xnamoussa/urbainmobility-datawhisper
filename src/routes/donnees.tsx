@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { ExternalLink, Database, FileCode } from "lucide-react";
+import { ExternalLink, Database, FileCode, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { neo4jStatus } from "@/lib/mobility.functions";
 
 export const Route = createFileRoute("/donnees")({
   component: DonneesPage,
@@ -12,6 +15,39 @@ export const Route = createFileRoute("/donnees")({
     ],
   }),
 });
+
+function Neo4jStatusCard() {
+  const fn = useServerFn(neo4jStatus);
+  const q = useQuery({ queryKey: ["neo4j-status"], queryFn: () => fn(), refetchInterval: 30000 });
+  const d = q.data;
+  const ok = d?.connected && (d?.stations ?? 0) > 0;
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+        <Database className="h-3.5 w-3.5" /> Instance Neo4j Aura
+      </div>
+      <div className="mt-3 flex items-center gap-3">
+        {q.isLoading ? (
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        ) : ok ? (
+          <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+        ) : (
+          <AlertCircle className="h-6 w-6 text-amber-500" />
+        )}
+        <div>
+          <div className="font-semibold">
+            {q.isLoading ? "Vérification…" : ok ? "Connecté · données réelles" : d?.configured ? "Connecté, base vide" : "Non configurée"}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {ok
+              ? `${d?.stations.toLocaleString()} stations · ${d?.links.toLocaleString()} relations LINK`
+              : "Lance `node scripts/import-gtfs.mjs` pour pousser le GTFS IDFM."}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const SOURCES = [
   { name: "transport.data.gouv.fr", desc: "Point national d'accès aux données ouvertes de mobilité (GTFS, GBFS, NeTEx).", url: "https://transport.data.gouv.fr" },
