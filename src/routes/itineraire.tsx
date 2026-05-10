@@ -82,15 +82,38 @@ function ItinerairePage() {
         </form>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
-          <div className="rounded-2xl border border-border bg-card p-6">
-            <h2 className="text-lg font-semibold">Trajet recommandé</h2>
-            {routeQuery.isLoading && <p className="mt-4 text-muted-foreground">Calcul…</p>}
-            {routeQuery.data && !routeQuery.data.found && (
-              <p className="mt-4 text-destructive">Aucun chemin trouvé entre ces stations dans le graphe démo.</p>
-            )}
-            {routeQuery.data && routeQuery.data.found && (
-              <Timeline steps={routeQuery.data.steps} />
-            )}
+          <div className="space-y-6">
+            <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+              <div className="flex items-center justify-between border-b border-border px-5 py-3">
+                <div>
+                  <h2 className="text-sm font-semibold tracking-wide">Carte du trajet</h2>
+                  <p className="text-xs text-muted-foreground">OpenStreetMap · CARTO dark</p>
+                </div>
+                <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                  {routeQuery.data?.found ? `${routeQuery.data.steps.length} arrêts` : "—"}
+                </span>
+              </div>
+              <div className="h-[420px] w-full">
+                <ClientOnly fallback={<div className="flex h-full items-center justify-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /></div>}>
+                  {() => (
+                    <Suspense fallback={<div className="flex h-full items-center justify-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /></div>}>
+                      <RouteMap stops={mapStops} />
+                    </Suspense>
+                  )}
+                </ClientOnly>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-6">
+              <h2 className="text-lg font-semibold">Trajet recommandé</h2>
+              {routeQuery.isLoading && <p className="mt-4 text-muted-foreground">Calcul…</p>}
+              {routeQuery.data && !routeQuery.data.found && (
+                <p className="mt-4 text-destructive">Aucun chemin trouvé entre ces stations dans le graphe démo.</p>
+              )}
+              {routeQuery.data && routeQuery.data.found && (
+                <Timeline steps={routeQuery.data.steps} />
+              )}
+            </div>
           </div>
           <aside className="space-y-4">
             <Metric icon={Clock} label="Temps total" value={routeQuery.data ? formatDuration(routeQuery.data.totalSeconds) : "—"} />
