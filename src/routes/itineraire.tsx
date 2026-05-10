@@ -1,11 +1,14 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { ClientOnly } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, lazy, Suspense, useMemo } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { listStations, computeRoute } from "@/lib/mobility.functions";
 import { ArrowRight, Loader2, MapPin, Clock, Route as RouteIcon } from "lucide-react";
+
+const RouteMap = lazy(() => import("@/components/RouteMap").then((m) => ({ default: m.RouteMap })));
 
 export const Route = createFileRoute("/itineraire")({
   component: ItinerairePage,
