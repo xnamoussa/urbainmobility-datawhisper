@@ -106,11 +106,9 @@ function ItinerairePage() {
               </div>
               <div className="h-[420px] w-full">
                 <ClientOnly fallback={<div className="flex h-full items-center justify-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /></div>}>
-                  {() => (
-                    <Suspense fallback={<div className="flex h-full items-center justify-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /></div>}>
-                      <RouteMap stops={mapStops} />
-                    </Suspense>
-                  )}
+                  <Suspense fallback={<div className="flex h-full items-center justify-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /></div>}>
+                    <RouteMap stops={mapStops} />
+                  </Suspense>
                 </ClientOnly>
               </div>
             </div>
