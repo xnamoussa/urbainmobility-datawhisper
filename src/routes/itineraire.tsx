@@ -50,15 +50,15 @@ function ItinerairePage() {
 
   const stations = stationsQuery.data?.stations ?? [];
 
-  const mapStops = useMemo(() => {
+  const mapStops = useMemo<{ id: string; name: string; lat: number; lon: number; line?: string }[]>(() => {
     if (!routeQuery.data?.found) return [];
-    return routeQuery.data.steps
-      .map((s) => {
-        const station = stations.find((st) => st.id === s.stationId);
-        if (!station) return null;
-        return { id: s.stationId, name: s.name, lat: station.lat, lon: station.lon, line: s.line };
-      })
-      .filter((x): x is { id: string; name: string; lat: number; lon: number; line?: string } => !!x);
+    const out: { id: string; name: string; lat: number; lon: number; line?: string }[] = [];
+    for (const s of routeQuery.data.steps) {
+      const station = stations.find((st) => st.id === s.stationId);
+      if (!station) continue;
+      out.push({ id: s.stationId, name: s.name, lat: station.lat, lon: station.lon, line: s.line });
+    }
+    return out;
   }, [routeQuery.data, stations]);
 
   return (
