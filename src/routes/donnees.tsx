@@ -68,6 +68,10 @@ function DonneesPage() {
           puis converties en graphe Neo4j.
         </p>
 
+        <section className="mt-8">
+          <Neo4jStatusCard />
+        </section>
+
         <section className="mt-10">
           <h2 className="font-display text-2xl font-semibold">Sources officielles</h2>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
