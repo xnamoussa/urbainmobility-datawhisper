@@ -1,11 +1,14 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { ClientOnly } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, lazy, Suspense, useMemo } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { listStations, computeRoute } from "@/lib/mobility.functions";
 import { ArrowRight, Loader2, MapPin, Clock, Route as RouteIcon } from "lucide-react";
+
+const RouteMap = lazy(() => import("@/components/RouteMap").then((m) => ({ default: m.RouteMap })));
 
 export const Route = createFileRoute("/itineraire")({
   component: ItinerairePage,
@@ -47,6 +50,17 @@ function ItinerairePage() {
 
   const stations = stationsQuery.data?.stations ?? [];
 
+  const mapStops = useMemo<{ id: string; name: string; lat: number; lon: number; line?: string }[]>(() => {
+    if (!routeQuery.data?.found) return [];
+    const out: { id: string; name: string; lat: number; lon: number; line?: string }[] = [];
+    for (const s of routeQuery.data.steps) {
+      const station = stations.find((st) => st.id === s.stationId);
+      if (!station) continue;
+      out.push({ id: s.stationId, name: s.name, lat: station.lat, lon: station.lon, line: s.line });
+    }
+    return out;
+  }, [routeQuery.data, stations]);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -79,15 +93,36 @@ function ItinerairePage() {
         </form>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
-          <div className="rounded-2xl border border-border bg-card p-6">
-            <h2 className="text-lg font-semibold">Trajet recommandé</h2>
-            {routeQuery.isLoading && <p className="mt-4 text-muted-foreground">Calcul…</p>}
-            {routeQuery.data && !routeQuery.data.found && (
-              <p className="mt-4 text-destructive">Aucun chemin trouvé entre ces stations dans le graphe démo.</p>
-            )}
-            {routeQuery.data && routeQuery.data.found && (
-              <Timeline steps={routeQuery.data.steps} />
-            )}
+          <div className="space-y-6">
+            <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+              <div className="flex items-center justify-between border-b border-border px-5 py-3">
+                <div>
+                  <h2 className="text-sm font-semibold tracking-wide">Carte du trajet</h2>
+                  <p className="text-xs text-muted-foreground">OpenStreetMap · CARTO dark</p>
+                </div>
+                <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                  {routeQuery.data?.found ? `${routeQuery.data.steps.length} arrêts` : "—"}
+                </span>
+              </div>
+              <div className="h-[420px] w-full">
+                <ClientOnly fallback={<div className="flex h-full items-center justify-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /></div>}>
+                  <Suspense fallback={<div className="flex h-full items-center justify-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /></div>}>
+                    <RouteMap stops={mapStops} />
+                  </Suspense>
+                </ClientOnly>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-6">
+              <h2 className="text-lg font-semibold">Trajet recommandé</h2>
+              {routeQuery.isLoading && <p className="mt-4 text-muted-foreground">Calcul…</p>}
+              {routeQuery.data && !routeQuery.data.found && (
+                <p className="mt-4 text-destructive">Aucun chemin trouvé entre ces stations dans le graphe démo.</p>
+              )}
+              {routeQuery.data && routeQuery.data.found && (
+                <Timeline steps={routeQuery.data.steps} />
+              )}
+            </div>
           </div>
           <aside className="space-y-4">
             <Metric icon={Clock} label="Temps total" value={routeQuery.data ? formatDuration(routeQuery.data.totalSeconds) : "—"} />
