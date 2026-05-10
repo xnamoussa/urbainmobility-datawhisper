@@ -50,6 +50,17 @@ function ItinerairePage() {
 
   const stations = stationsQuery.data?.stations ?? [];
 
+  const mapStops = useMemo(() => {
+    if (!routeQuery.data?.found) return [];
+    return routeQuery.data.steps
+      .map((s) => {
+        const station = stations.find((st) => st.id === s.stationId);
+        if (!station) return null;
+        return { id: s.stationId, name: s.name, lat: station.lat, lon: station.lon, line: s.line };
+      })
+      .filter((x): x is { id: string; name: string; lat: number; lon: number; line?: string } => !!x);
+  }, [routeQuery.data, stations]);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
