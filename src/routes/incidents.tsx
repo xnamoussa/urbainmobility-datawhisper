@@ -1,11 +1,13 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { listIncidents } from "@/lib/mobility.functions";
 import { LineBadge } from "./itineraire";
-import { AlertTriangle, Activity, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, Activity, CheckCircle2, BellRing, BellOff } from "lucide-react";
 
 export const Route = createFileRoute("/incidents")({
   component: IncidentsPage,
