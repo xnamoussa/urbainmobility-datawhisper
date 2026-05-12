@@ -38,27 +38,50 @@ export const Route = createFileRoute("/incidents")({
 });
 
 function IncidentsPage() {
-  const fn = useServerFn(listIncidents);
   const [alertsOn, setAlertsOn] = useState(true);
-  const { data, dataUpdatedAt } = useQuery({
-    queryKey: ["incidents"],
-    queryFn: () => fn(),
-    refetchInterval: 15000,
-  });
-  const incidents = data?.incidents ?? [];
-  const prevRef = useRef<Map<string, { severity: string; status?: string }> | null>(null);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [lastUpdateTs, setLastUpdateTs] = useState<number | null>(null);
+  const [connState, setConnState] = useState<"connecting" | "live" | "offline">("connecting");
+  const [source, setSource] = useState<"neo4j" | "demo" | null>(null);
+  const prevRef = useRef<Map<string, { severity: string; status: string }> | null>(null);
+  const alertsOnRef = useRef(alertsOn);
+  alertsOnRef.current = alertsOn;
 
+  // Connexion SSE temps réel — reconnexion automatique côté EventSource
   useEffect(() => {
-    if (!data) return;
-    const current = new Map(
-      incidents.map((i: any) => [i.id, { severity: i.severity, status: i.status ?? "ACTIF" }]),
+    if (typeof window === "undefined") return;
+    const es = new EventSource("/api/incidents/stream");
+    es.addEventListener("hello", () => setConnState("live"));
+    es.onopen = () => setConnState("live");
+    es.onerror = () => setConnState("offline");
+    es.addEventListener("incidents", (ev) => {
+      try {
+        const payload = JSON.parse((ev as MessageEvent).data) as {
+          incidents: Incident[];
+          source: "neo4j" | "demo";
+          ts: number;
+        };
+        setIncidents(payload.incidents);
+        setLastUpdateTs(payload.ts);
+        setSource(payload.source);
+        setConnState("live");
+      } catch {
+        /* ignore */
+      }
+    });
+    return () => es.close();
+  }, []);
+
+  // Diff -> notifications
+  useEffect(() => {
+    const current = new Map<string, { severity: string; status: string }>(
+      incidents.map((i) => [i.id, { severity: i.severity, status: i.status ?? "ACTIF" }]),
     );
     const prev = prevRef.current;
-    if (prev && alertsOn) {
-      // Nouveaux incidents
+    if (prev && alertsOnRef.current) {
       for (const [id, cur] of current) {
         const before = prev.get(id);
-        const inc = incidents.find((x: any) => x.id === id);
+        const inc = incidents.find((x) => x.id === id);
         if (!before) {
           if (cur.severity === "high") {
             toast.error(`Incident critique · ${inc?.line ?? ""}`, {
@@ -66,21 +89,14 @@ function IncidentsPage() {
               duration: 8000,
             });
           } else if (cur.severity === "medium") {
-            toast.warning(`Incident modéré · ${inc?.line ?? ""}`, {
-              description: inc?.message ?? "",
-            });
+            toast.warning(`Incident modéré · ${inc?.line ?? ""}`, { description: inc?.message ?? "" });
           }
         } else if (before.status === "ACTIF" && cur.status === "RESOLU") {
-          toast.success(`Incident résolu · ${inc?.line ?? ""}`, {
-            description: inc?.message ?? "",
-          });
+          toast.success(`Incident résolu · ${inc?.line ?? ""}`, { description: inc?.message ?? "" });
         } else if (before.severity !== cur.severity && cur.severity === "high") {
-          toast.error(`Aggravation · ${inc?.line ?? ""}`, {
-            description: `Sévérité passée à critique`,
-          });
+          toast.error(`Aggravation · ${inc?.line ?? ""}`, { description: `Sévérité passée à critique` });
         }
       }
-      // Disparus = considérés résolus
       for (const [id, before] of prev) {
         if (!current.has(id) && before.status === "ACTIF") {
           toast.success(`Incident clôturé`, { description: `#${id}` });
@@ -88,14 +104,18 @@ function IncidentsPage() {
       }
     }
     prevRef.current = current;
-  }, [data, alertsOn, incidents]);
+  }, [incidents]);
 
   const counts = {
     high: incidents.filter((i) => i.severity === "high").length,
     medium: incidents.filter((i) => i.severity === "medium").length,
     low: incidents.filter((i) => i.severity === "low").length,
   };
-  const lastUpdate = dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString("fr-FR") : "—";
+  const lastUpdate = lastUpdateTs ? new Date(lastUpdateTs).toLocaleTimeString("fr-FR") : "—";
+  const liveDotColor =
+    connState === "live" ? "bg-success" : connState === "connecting" ? "bg-warning" : "bg-destructive";
+  const liveLabel =
+    connState === "live" ? "SSE live" : connState === "connecting" ? "Connexion…" : "Hors ligne";
 
   return (
     <div className="min-h-screen bg-background">
