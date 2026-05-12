@@ -30,14 +30,63 @@ export const Route = createFileRoute("/incidents")({
 
 function IncidentsPage() {
   const fn = useServerFn(listIncidents);
-  const { data } = useQuery({ queryKey: ["incidents"], queryFn: () => fn(), refetchInterval: 15000 });
+  const [alertsOn, setAlertsOn] = useState(true);
+  const { data, dataUpdatedAt } = useQuery({
+    queryKey: ["incidents"],
+    queryFn: () => fn(),
+    refetchInterval: 15000,
+  });
   const incidents = data?.incidents ?? [];
+  const prevRef = useRef<Map<string, { severity: string; status?: string }> | null>(null);
+
+  useEffect(() => {
+    if (!data) return;
+    const current = new Map(
+      incidents.map((i: any) => [i.id, { severity: i.severity, status: i.status ?? "ACTIF" }]),
+    );
+    const prev = prevRef.current;
+    if (prev && alertsOn) {
+      // Nouveaux incidents
+      for (const [id, cur] of current) {
+        const before = prev.get(id);
+        const inc = incidents.find((x: any) => x.id === id);
+        if (!before) {
+          if (cur.severity === "high") {
+            toast.error(`Incident critique · ${inc?.line ?? ""}`, {
+              description: inc?.message ?? "Nouvel incident détecté",
+              duration: 8000,
+            });
+          } else if (cur.severity === "medium") {
+            toast.warning(`Incident modéré · ${inc?.line ?? ""}`, {
+              description: inc?.message ?? "",
+            });
+          }
+        } else if (before.status === "ACTIF" && cur.status === "RESOLU") {
+          toast.success(`Incident résolu · ${inc?.line ?? ""}`, {
+            description: inc?.message ?? "",
+          });
+        } else if (before.severity !== cur.severity && cur.severity === "high") {
+          toast.error(`Aggravation · ${inc?.line ?? ""}`, {
+            description: `Sévérité passée à critique`,
+          });
+        }
+      }
+      // Disparus = considérés résolus
+      for (const [id, before] of prev) {
+        if (!current.has(id) && before.status === "ACTIF") {
+          toast.success(`Incident clôturé`, { description: `#${id}` });
+        }
+      }
+    }
+    prevRef.current = current;
+  }, [data, alertsOn, incidents]);
 
   const counts = {
     high: incidents.filter((i) => i.severity === "high").length,
     medium: incidents.filter((i) => i.severity === "medium").length,
     low: incidents.filter((i) => i.severity === "low").length,
   };
+  const lastUpdate = dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString("fr-FR") : "—";
 
   return (
     <div className="min-h-screen bg-background">
