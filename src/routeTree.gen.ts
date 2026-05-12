@@ -14,6 +14,7 @@ import { Route as IncidentsRouteImport } from './routes/incidents'
 import { Route as DonneesRouteImport } from './routes/donnees'
 import { Route as AccessibiliteRouteImport } from './routes/accessibilite'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiIncidentsStreamRouteImport } from './routes/api/incidents/stream'
 
 const ItineraireRoute = ItineraireRouteImport.update({
   id: '/itineraire',
@@ -40,6 +41,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiIncidentsStreamRoute = ApiIncidentsStreamRouteImport.update({
+  id: '/api/incidents/stream',
+  path: '/api/incidents/stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/donnees': typeof DonneesRoute
   '/incidents': typeof IncidentsRoute
   '/itineraire': typeof ItineraireRoute
+  '/api/incidents/stream': typeof ApiIncidentsStreamRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/donnees': typeof DonneesRoute
   '/incidents': typeof IncidentsRoute
   '/itineraire': typeof ItineraireRoute
+  '/api/incidents/stream': typeof ApiIncidentsStreamRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,12 +70,25 @@ export interface FileRoutesById {
   '/donnees': typeof DonneesRoute
   '/incidents': typeof IncidentsRoute
   '/itineraire': typeof ItineraireRoute
+  '/api/incidents/stream': typeof ApiIncidentsStreamRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/accessibilite' | '/donnees' | '/incidents' | '/itineraire'
+  fullPaths:
+    | '/'
+    | '/accessibilite'
+    | '/donnees'
+    | '/incidents'
+    | '/itineraire'
+    | '/api/incidents/stream'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/accessibilite' | '/donnees' | '/incidents' | '/itineraire'
+  to:
+    | '/'
+    | '/accessibilite'
+    | '/donnees'
+    | '/incidents'
+    | '/itineraire'
+    | '/api/incidents/stream'
   id:
     | '__root__'
     | '/'
@@ -75,6 +96,7 @@ export interface FileRouteTypes {
     | '/donnees'
     | '/incidents'
     | '/itineraire'
+    | '/api/incidents/stream'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -83,6 +105,7 @@ export interface RootRouteChildren {
   DonneesRoute: typeof DonneesRoute
   IncidentsRoute: typeof IncidentsRoute
   ItineraireRoute: typeof ItineraireRoute
+  ApiIncidentsStreamRoute: typeof ApiIncidentsStreamRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -122,6 +145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/incidents/stream': {
+      id: '/api/incidents/stream'
+      path: '/api/incidents/stream'
+      fullPath: '/api/incidents/stream'
+      preLoaderRoute: typeof ApiIncidentsStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -131,6 +161,7 @@ const rootRouteChildren: RootRouteChildren = {
   DonneesRoute: DonneesRoute,
   IncidentsRoute: IncidentsRoute,
   ItineraireRoute: ItineraireRoute,
+  ApiIncidentsStreamRoute: ApiIncidentsStreamRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
