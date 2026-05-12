@@ -124,7 +124,9 @@ function IncidentsPage() {
         <div className="flex items-end justify-between">
           <div>
             <h1 className="text-4xl font-bold tracking-tight">Centre d'incidents</h1>
-            <p className="mt-3 text-muted-foreground">Anomalies détectées sur le graphe — actualisation toutes les 15 s.</p>
+            <p className="mt-3 text-muted-foreground">
+              Flux temps réel via Server-Sent Events — notifications instantanées dès qu'un incident apparaît, change de gravité ou est résolu.
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -147,10 +149,19 @@ function IncidentsPage() {
             </button>
             <div className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs">
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+                {connState === "live" && (
+                  <span className={`absolute inline-flex h-full w-full animate-ping rounded-full ${liveDotColor} opacity-75`} />
+                )}
+                <span className={`relative inline-flex h-2 w-2 rounded-full ${liveDotColor}`} />
               </span>
-              Live · MAJ {lastUpdate}
+              {connState === "offline" ? (
+                <RadioTower className="h-3 w-3 opacity-60" />
+              ) : (
+                <Radio className="h-3 w-3 opacity-60" />
+              )}
+              {liveLabel}
+              {source && <span className="text-muted-foreground">· {source}</span>}
+              <span className="text-muted-foreground">· {lastUpdate}</span>
             </div>
           </div>
         </div>
