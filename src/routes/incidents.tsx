@@ -1,13 +1,22 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { listIncidents } from "@/lib/mobility.functions";
 import { LineBadge } from "./itineraire";
-import { AlertTriangle, Activity, CheckCircle2, BellRing, BellOff } from "lucide-react";
+import { AlertTriangle, Activity, CheckCircle2, BellRing, BellOff, Radio, RadioTower } from "lucide-react";
+
+type Incident = {
+  id: string;
+  line: string;
+  station?: string;
+  severity: "high" | "medium" | "low";
+  type: string;
+  message: string;
+  since: string;
+  impact: string;
+  status?: string;
+};
 
 export const Route = createFileRoute("/incidents")({
   component: IncidentsPage,
