@@ -97,12 +97,32 @@ function IncidentsPage() {
             <h1 className="text-4xl font-bold tracking-tight">Centre d'incidents</h1>
             <p className="mt-3 text-muted-foreground">Anomalies détectées sur le graphe — actualisation toutes les 15 s.</p>
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
-            </span>
-            Live · Neo4j stream
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setAlertsOn((v) => {
+                  const nv = !v;
+                  toast(nv ? "Alertes temps réel activées" : "Alertes désactivées");
+                  return nv;
+                });
+              }}
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                alertsOn
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-border bg-card text-muted-foreground hover:bg-secondary/60"
+              }`}
+              title={alertsOn ? "Désactiver les notifications" : "Activer les notifications"}
+            >
+              {alertsOn ? <BellRing className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
+              {alertsOn ? "Alertes ON" : "Alertes OFF"}
+            </button>
+            <div className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+              </span>
+              Live · MAJ {lastUpdate}
+            </div>
           </div>
         </div>
 
