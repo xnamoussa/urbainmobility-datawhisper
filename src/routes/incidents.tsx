@@ -1,11 +1,13 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { listIncidents } from "@/lib/mobility.functions";
 import { LineBadge } from "./itineraire";
-import { AlertTriangle, Activity, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, Activity, CheckCircle2, BellRing, BellOff } from "lucide-react";
 
 export const Route = createFileRoute("/incidents")({
   component: IncidentsPage,
@@ -28,14 +30,63 @@ export const Route = createFileRoute("/incidents")({
 
 function IncidentsPage() {
   const fn = useServerFn(listIncidents);
-  const { data } = useQuery({ queryKey: ["incidents"], queryFn: () => fn(), refetchInterval: 15000 });
+  const [alertsOn, setAlertsOn] = useState(true);
+  const { data, dataUpdatedAt } = useQuery({
+    queryKey: ["incidents"],
+    queryFn: () => fn(),
+    refetchInterval: 15000,
+  });
   const incidents = data?.incidents ?? [];
+  const prevRef = useRef<Map<string, { severity: string; status?: string }> | null>(null);
+
+  useEffect(() => {
+    if (!data) return;
+    const current = new Map(
+      incidents.map((i: any) => [i.id, { severity: i.severity, status: i.status ?? "ACTIF" }]),
+    );
+    const prev = prevRef.current;
+    if (prev && alertsOn) {
+      // Nouveaux incidents
+      for (const [id, cur] of current) {
+        const before = prev.get(id);
+        const inc = incidents.find((x: any) => x.id === id);
+        if (!before) {
+          if (cur.severity === "high") {
+            toast.error(`Incident critique · ${inc?.line ?? ""}`, {
+              description: inc?.message ?? "Nouvel incident détecté",
+              duration: 8000,
+            });
+          } else if (cur.severity === "medium") {
+            toast.warning(`Incident modéré · ${inc?.line ?? ""}`, {
+              description: inc?.message ?? "",
+            });
+          }
+        } else if (before.status === "ACTIF" && cur.status === "RESOLU") {
+          toast.success(`Incident résolu · ${inc?.line ?? ""}`, {
+            description: inc?.message ?? "",
+          });
+        } else if (before.severity !== cur.severity && cur.severity === "high") {
+          toast.error(`Aggravation · ${inc?.line ?? ""}`, {
+            description: `Sévérité passée à critique`,
+          });
+        }
+      }
+      // Disparus = considérés résolus
+      for (const [id, before] of prev) {
+        if (!current.has(id) && before.status === "ACTIF") {
+          toast.success(`Incident clôturé`, { description: `#${id}` });
+        }
+      }
+    }
+    prevRef.current = current;
+  }, [data, alertsOn, incidents]);
 
   const counts = {
     high: incidents.filter((i) => i.severity === "high").length,
     medium: incidents.filter((i) => i.severity === "medium").length,
     low: incidents.filter((i) => i.severity === "low").length,
   };
+  const lastUpdate = dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString("fr-FR") : "—";
 
   return (
     <div className="min-h-screen bg-background">
@@ -46,12 +97,32 @@ function IncidentsPage() {
             <h1 className="text-4xl font-bold tracking-tight">Centre d'incidents</h1>
             <p className="mt-3 text-muted-foreground">Anomalies détectées sur le graphe — actualisation toutes les 15 s.</p>
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
-            </span>
-            Live · Neo4j stream
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setAlertsOn((v) => {
+                  const nv = !v;
+                  toast(nv ? "Alertes temps réel activées" : "Alertes désactivées");
+                  return nv;
+                });
+              }}
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                alertsOn
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-border bg-card text-muted-foreground hover:bg-secondary/60"
+              }`}
+              title={alertsOn ? "Désactiver les notifications" : "Activer les notifications"}
+            >
+              {alertsOn ? <BellRing className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
+              {alertsOn ? "Alertes ON" : "Alertes OFF"}
+            </button>
+            <div className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+              </span>
+              Live · MAJ {lastUpdate}
+            </div>
           </div>
         </div>
 
